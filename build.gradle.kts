@@ -3,3 +3,5 @@ plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.compose) apply false
 }
+
+implementation("io.coil-kt:coil-compose:2.6.0")
