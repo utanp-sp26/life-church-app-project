@@ -23,6 +23,7 @@ import edu.utap.life_church_app.ui.media.MediaPage
 import edu.utap.life_church_app.ui.pages.home.HomePage
 import edu.utap.life_church_app.ui.shell.FullScreenMenuDrawer
 import edu.utap.life_church_app.ui.shell.LifeBottomBar
+import edu.utap.life_church_app.navigation.BottomTab
 
 /**
  * **Single owner** of the root [NavHost] and app shell (see [AppRoute] KDoc). Add new
