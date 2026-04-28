@@ -100,6 +100,7 @@ fun GivingPage(viewModel: GivingViewModel = viewModel()) {
     var selectedDate by remember { mutableStateOf(Calendar.getInstance().time) }
     var processDateLabel by remember { mutableStateOf("Today") }
     var isGooglePayReady by remember { mutableStateOf(false) }
+    var gmsCheckAttempt by remember { mutableStateOf(0) }
     val context = LocalContext.current
     var hasLocationPermission by remember { mutableStateOf(hasAnyLocationPermission(context)) }
     var userCoordinates by remember { mutableStateOf(UT_AUSTIN_SPEEDWAY_COORDS) }
@@ -153,10 +154,22 @@ fun GivingPage(viewModel: GivingViewModel = viewModel()) {
         }
     }
 
-    LaunchedEffect(paymentsClient) {
-        val request = IsReadyToPayRequest.fromJson(GooglePayJsonFactory.isReadyToPayRequest().toString())
-        paymentsClient.isReadyToPay(request).addOnCompleteListener { task ->
-            isGooglePayReady = task.isSuccessful && task.result == true
+    LaunchedEffect(paymentsClient, gmsCheckAttempt) {
+        try {
+            val request = IsReadyToPayRequest.fromJson(GooglePayJsonFactory.isReadyToPayRequest().toString())
+            paymentsClient.isReadyToPay(request).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    isGooglePayReady = task.result == true
+                } else {
+                    isGooglePayReady = false
+                    val error = task.exception
+                    if (error is android.os.DeadObjectException || error?.cause is android.os.DeadObjectException) {
+                        viewModel.reportError("Google Play Services encountered a system error. Please try again or check device storage.")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            isGooglePayReady = false
         }
     }
 
@@ -454,9 +467,16 @@ fun GivingPage(viewModel: GivingViewModel = viewModel()) {
                                             val request = IntentSenderRequest.Builder(throwable.resolution).build()
                                             googlePayLauncher.launch(request)
                                         } else {
-                                            viewModel.reportError(
-                                                "Google Pay failed: ${throwable.message ?: "unknown"}"
-                                            )
+                                            val message = when {
+                                                throwable is android.os.DeadObjectException || throwable.cause is android.os.DeadObjectException ->
+                                                    "System connection failed (DeadObject). Please restart the app or check device space."
+                                                throwable.message?.contains("No space left", ignoreCase = true) == true ->
+                                                    "Insufficient device storage to complete the payment request."
+                                                else -> "Google Pay failed: ${throwable.message ?: "unknown"}"
+                                            }
+                                            viewModel.reportError(message)
+                                            // Trigger a re-check of GMS availability
+                                            gmsCheckAttempt++
                                         }
                                     }
                             },
@@ -1129,3 +1149,46 @@ private fun givingLocationsCatalog(): List<CampusLocation> = listOf(
     CampusLocation("West Palm Beach", "2625 Okeechobee Blvd", "West Palm Beach, FL", 26.7060, -80.0950),
     CampusLocation("Albany (Latham)", "595 New Loudon Rd", "Latham, NY", 42.7478, -73.7590)
 )
+
+/*
+Incident Report: Google Pay Integration Failure (GivingPage)
+Status: Partially mitigated with robust error handling; pending system-level resolution.
+
+1. Symptom Summary
+When the user attempts to initiate a gift by clicking the "Schedule Gift" button, the Google Pay sheet fails to launch.
+The UI either displays a generic "Google Pay was cancelled" message or, with the latest updates, specifically reports a system connection failure.
+
+2. Technical Root Cause
+The failure is occurring at the IPC (Inter-Process Communication) layer between the app and the Google Play Services (GMS) process.
+- Error Code: android.os.DeadObjectException
+- System Error: error: -28 (No space left on device)
+- Mechanism: A Binder transaction failure is occurring because the device has run out of storage space or the binder buffer is exhausted.
+  This causes the GMS remote process to die or become unreachable when the app calls paymentsClient.loadPaymentData.
+
+3. Relevant Log Evidence
+Binder transaction failure. id: 321033, BR_*: 29201, error: -28 (No space left on device)
+!!! FAILED BINDER TRANSACTION !!! (parcel size = 1284)
+android.os.DeadObjectException: Transaction failed on small parcel; remote process probably died,
+but this could also be caused by running out of binder buffer space
+    at android.os.BinderProxy.transactNative(Native Method)
+    at com.google.android.gms.common.internal.zzaa.getService(...)
+
+4. Impacted Components
+- Wallet.getPaymentsClient: Proxies to GMS are invalidated.
+- isReadyToPay: Fails to return a result, leaving the "Schedule" button in an uncertain state.
+- loadPaymentData: Throws the DeadObjectException immediately upon invocation.
+
+5. Current Mitigations (Applied)
+The following "surgical" fixes were applied to GivingPage.kt to prevent app crashes and improve UX:
+- Null Safety Fix: Resolved an argument type mismatch where Intent? was passed to PaymentData.getFromIntent (which expects non-null Intent).
+- Exception Categorization: Added logic to catch DeadObjectException and specifically check the exception cause.
+  The UI now informs the user if the failure is due to system resource exhaustion (storage) rather than a simple user cancellation.
+- Retry Logic: Introduced gmsCheckAttempt state. If a system failure occurs, the app now attempts to re-initialize the isReadyToPay check automatically.
+
+6. Recommended Action for Senior Developer
+This is primarily a system environment issue exacerbated by the emulator/device state.
+- Immediate Fix: Wipe data/Cold boot the emulator or free up space on the physical test device.
+- Code Review: Ensure WalletOptions environment is strictly ENVIRONMENT_TEST for debug builds.
+- Architecture: Consider moving the PaymentsClient initialization to a higher scope (e.g., Activity level or a Singleton)
+  if the current remember block is being invalidated too frequently during system stress.
+*/
