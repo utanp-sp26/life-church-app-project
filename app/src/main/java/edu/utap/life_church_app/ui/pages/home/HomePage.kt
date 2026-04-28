@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomePage(
@@ -47,6 +48,8 @@ fun HomePage(
     openPrayerFromMenu: Boolean = false,
     onConsumeOpenPrayerFromMenu: () -> Unit = {},
 ) {
+    val prayerRequestRepository = remember { PrayerRequestRepository() }
+    val coroutineScope = rememberCoroutineScope()
     var showPrayerModal by remember { mutableStateOf(false) }
     var showPhoneModal by remember { mutableStateOf(false) }
     var showConfirmationModal by remember { mutableStateOf(false) }
@@ -54,6 +57,10 @@ fun HomePage(
     var phoneNumber by remember { mutableStateOf("") }
     var prayerText by remember { mutableStateOf("") }
     var hasPhone by remember { mutableStateOf(false) }
+    var isSubmittingPrayer by remember { mutableStateOf(false) }
+    var prayerSubmitError by remember { mutableStateOf<String?>(null) }
+    val profileName = "Perry Ehimuh"
+    val churchLocation = "Austin Branch"
 
     LaunchedEffect(openPrayerFromMenu) {
         if (openPrayerFromMenu) {
@@ -78,14 +85,45 @@ fun HomePage(
 
         if (showPrayerModal) {
             PrayerRequestModal(
+                profileName = profileName,
+                profileChurch = "Life.Church Austin",
                 hasPhone = hasPhone,
                 prayerText = prayerText,
+                isSubmitting = isSubmittingPrayer,
+                errorMessage = prayerSubmitError,
                 onPrayerTextChange = { prayerText = it },
-                onClose = { showPrayerModal = false },
+                onClose = {
+                    if (!isSubmittingPrayer) {
+                        showPrayerModal = false
+                        prayerSubmitError = null
+                    }
+                },
                 onEditPhone = { showPhoneModal = true },
                 onSubmit = {
-                    showPrayerModal = false
-                    showConfirmationModal = true
+                    if (!isSubmittingPrayer) {
+                        if (prayerText.isBlank()) {
+                            prayerSubmitError = "Please enter your prayer request before submitting."
+                        } else {
+                            prayerSubmitError = null
+                            isSubmittingPrayer = true
+
+                            coroutineScope.launch {
+                                runCatching {
+                                    prayerRequestRepository.submitPrayerRequest(
+                                        name = profileName,
+                                        churchLocation = churchLocation,
+                                        prayerRequest = prayerText.trim(),
+                                    )
+                                }.onSuccess {
+                                    showPrayerModal = false
+                                    showConfirmationModal = true
+                                }.onFailure {
+                                    prayerSubmitError = "We couldn't submit your request. Please try again."
+                                }
+                                isSubmittingPrayer = false
+                            }
+                        }
+                    }
                 }
             )
         }
@@ -109,6 +147,7 @@ fun HomePage(
                 onDone = {
                     showConfirmationModal = false
                     prayerText = ""
+                    prayerSubmitError = null
                 }
             )
         }
@@ -334,8 +373,12 @@ private fun MoreCard(title: String, subtitle: String, cta: String, imageUrl: Str
 
 @Composable
 private fun PrayerRequestModal(
+    profileName: String,
+    profileChurch: String,
     hasPhone: Boolean,
     prayerText: String,
+    isSubmitting: Boolean,
+    errorMessage: String?,
     onPrayerTextChange: (String) -> Unit,
     onClose: () -> Unit,
     onEditPhone: () -> Unit,
@@ -361,7 +404,11 @@ private fun PrayerRequestModal(
                     }
                 }
                 Spacer(modifier = Modifier.height(20.dp))
-                ProfileInfoCard(onEditPhone)
+                ProfileInfoCard(
+                    profileName = profileName,
+                    profileChurch = profileChurch,
+                    onEditPhone = onEditPhone
+                )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = prayerText,
@@ -371,20 +418,33 @@ private fun PrayerRequestModal(
                     shape = RoundedCornerShape(18.dp),
                     colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
                 )
+                if (errorMessage != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 13.sp
+                    )
+                }
                 Spacer(modifier = Modifier.height(20.dp))
                 Button(
                     onClick = if (hasPhone) onSubmit else onEditPhone,
                     modifier = Modifier.fillMaxWidth().height(54.dp),
                     shape = CircleShape,
+                    enabled = !isSubmitting,
                     colors = ButtonDefaults.buttonColors(containerColor = if (hasPhone) Color.Black else Color(0xFFD5D5D5), contentColor = if (hasPhone) Color.White else Color.Black)
-                ) { Text(if (hasPhone) "Submit" else "Add Missing Info", fontWeight = FontWeight.SemiBold) }
+                ) { Text(if (hasPhone && isSubmitting) "Submitting..." else if (hasPhone) "Submit" else "Add Missing Info", fontWeight = FontWeight.SemiBold) }
             }
         }
     }
 }
 
 @Composable
-private fun ProfileInfoCard(onEditPhone: () -> Unit) {
+private fun ProfileInfoCard(
+    profileName: String,
+    profileChurch: String,
+    onEditPhone: () -> Unit
+) {
     Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -393,8 +453,8 @@ private fun ProfileInfoCard(onEditPhone: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text("Perry Ehimuh", fontWeight = FontWeight.SemiBold)
-                    Text("Life.Church Austin", color = Color.Gray, fontSize = 13.sp)
+                    Text(profileName, fontWeight = FontWeight.SemiBold)
+                    Text(profileChurch, color = Color.Gray, fontSize = 13.sp)
                 }
             }
             Button(onClick = onEditPhone, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE0E0E0), contentColor = Color.Black)) { Text("Edit") }

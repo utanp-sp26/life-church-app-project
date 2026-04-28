@@ -1,8 +1,25 @@
+import org.gradle.api.GradleException
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
 //    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.services)
 }
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use(::load)
+    }
+}
+
+fun localSecretOrNull(key: String): String? =
+    localProperties.getProperty(key)?.trim()?.takeIf { it.isNotEmpty() }
+
+fun buildConfigString(value: String): String =
+    "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
 android {
     namespace = "edu.utap.life_church_app"
@@ -19,7 +36,19 @@ android {
     }
 
     buildTypes {
+        debug {
+            val debugBackendUrl = localSecretOrNull("GIVING_BACKEND_URL_DEBUG") ?: ""
+            val debugStripeKey = localSecretOrNull("STRIPE_PUBLISHABLE_KEY_DEBUG") ?: ""
+            buildConfigField("String", "GIVING_BACKEND_URL", buildConfigString(debugBackendUrl))
+            buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", buildConfigString(debugStripeKey))
+        }
         release {
+            val releaseBackendUrl = localSecretOrNull("GIVING_BACKEND_URL_RELEASE")
+                ?: throw GradleException("Missing GIVING_BACKEND_URL_RELEASE in local.properties")
+            val releaseStripeKey = localSecretOrNull("STRIPE_PUBLISHABLE_KEY_RELEASE")
+                ?: throw GradleException("Missing STRIPE_PUBLISHABLE_KEY_RELEASE in local.properties")
+            buildConfigField("String", "GIVING_BACKEND_URL", buildConfigString(releaseBackendUrl))
+            buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", buildConfigString(releaseStripeKey))
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -39,6 +68,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -53,7 +83,12 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.play.services.wallet)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.analytics)
 
     implementation("io.coil-kt:coil-compose:2.6.0")
 

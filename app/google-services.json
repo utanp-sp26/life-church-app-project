@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "863579924779",
+    "project_id": "life-church-app-pee279",
+    "storage_bucket": "life-church-app-pee279.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:863579924779:android:10cbe3305595cd0a4ffd6e",
+        "android_client_info": {
+          "package_name": "edu.utap.life_church_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBiV2ETnHs5Ig581i2U_hDB_h_qHEYEvTo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

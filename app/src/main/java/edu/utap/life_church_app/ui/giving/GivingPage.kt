@@ -1,5 +1,15 @@
 package edu.utap.life_church_app.ui.giving
 
+import android.app.Activity
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationManager
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +25,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -24,7 +35,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -34,6 +44,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,6 +53,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,18 +62,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.wallet.IsReadyToPayRequest
+import com.google.android.gms.wallet.PaymentData
+import com.google.android.gms.wallet.PaymentDataRequest
+import com.google.android.gms.wallet.Wallet
+import com.google.android.gms.wallet.WalletConstants
+import edu.utap.life_church_app.ui.giving.payment.GooglePayJsonFactory
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GivingPage() {
+fun GivingPage(viewModel: GivingViewModel = viewModel()) {
     var amount by remember { mutableStateOf("0") }
     var recurringEnabled by remember { mutableStateOf(false) }
     var frequency by remember { mutableStateOf("Monthly") }
@@ -72,13 +96,25 @@ fun GivingPage() {
     var showFundPicker by remember { mutableStateOf(false) }
     var showLocationPicker by remember { mutableStateOf(false) }
     var showFrequencyPicker by remember { mutableStateOf(false) }
-    var showPaymentConfirmation by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf(Calendar.getInstance().time) }
     var processDateLabel by remember { mutableStateOf("Today") }
+    var isGooglePayReady by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var hasLocationPermission by remember { mutableStateOf(hasAnyLocationPermission(context)) }
+    var userCoordinates by remember { mutableStateOf(UT_AUSTIN_SPEEDWAY_COORDS) }
+    val activity = context as? Activity
+    val submitUiState by viewModel.submitUiState.collectAsState()
+    val paymentsClient = remember(context) {
+        Wallet.getPaymentsClient(
+            context,
+            Wallet.WalletOptions.Builder()
+                .setEnvironment(WalletConstants.ENVIRONMENT_TEST)
+                .build()
+        )
+    }
     val isDarkTheme = isSystemInDarkTheme()
     val backgroundColor = if (isDarkTheme) Color(0xFF1A1A1A) else MaterialTheme.colorScheme.background
     val surfaceColor = if (isDarkTheme) Color(0xFF2A2A2A) else MaterialTheme.colorScheme.surface
-    val elevatedSurfaceColor = if (isDarkTheme) Color(0xFF3A3A3A) else MaterialTheme.colorScheme.surface
     val onBackgroundColor = MaterialTheme.colorScheme.onBackground
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val secondaryTextColor = if (isDarkTheme) Color(0xFF9CA3AF) else MaterialTheme.colorScheme.onSurfaceVariant
@@ -90,19 +126,78 @@ fun GivingPage() {
     val lightGrayControlContainer = Color(0xFFE5E7EB)
     val lightGrayControlContent = Color.Black
 
+    val googlePayLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val paymentToken = extractPaymentToken(PaymentData.getFromIntent(result.data))
+            if (paymentToken.isNullOrBlank()) {
+                viewModel.reportError("Google Pay token was empty. Please try again.")
+            } else {
+                viewModel.scheduleGift(
+                    amount = amount,
+                    location = location,
+                    frequency = if (recurringEnabled) frequency else null,
+                    processDateLabel = processDateLabel,
+                    paymentToken = paymentToken
+                )
+            }
+        } else {
+            viewModel.reportError("Google Pay was cancelled.")
+        }
+    }
+
+    LaunchedEffect(paymentsClient) {
+        val request = IsReadyToPayRequest.fromJsonString(GooglePayJsonFactory.isReadyToPayRequest().toString())
+        paymentsClient.isReadyToPay(request).addOnCompleteListener { task ->
+            isGooglePayReady = task.isSuccessful && task.result == true
+        }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        hasLocationPermission = permissions.values.any { it } || hasAnyLocationPermission(context)
+    }
+
     val funds = remember { givingFunds() }
     val frequencies = remember { listOf("Weekly", "Every Two Weeks", "Twice Monthly (1st & 15th)", "Monthly") }
-    val locations = remember {
-        listOf(
-            GivingLocation("Austin", "13609 N. Interstate Hwy 35", "Austin, TX, 78753", "SUGGESTED", "9.9mi"),
-            GivingLocation(
-                "Life.Church Online",
-                "Life.Church Online meets anywhere you are with more than 130 services each week.",
-                "",
-                "GLOBAL",
-                "369.9mi"
-            )
-        )
+    val locationCatalog = remember { givingLocationsCatalog() }
+    val onlineLocation = remember { givingOnlineLocation() }
+    val physicalLocations = remember(locationCatalog, userCoordinates) {
+        locationCatalog
+            .map { base ->
+                val miles = distanceMiles(
+                    userLat = userCoordinates.latitude,
+                    userLon = userCoordinates.longitude,
+                    targetLat = base.latitude,
+                    targetLon = base.longitude
+                )
+                base.toUiLocation(formatMiles(miles))
+            }
+            .sortedBy { it.distanceMiles }
+    }
+    val suggestedLocation = physicalLocations.firstOrNull()
+
+    LaunchedEffect(hasLocationPermission, showLocationPicker) {
+        if (showLocationPicker) {
+            if (!hasLocationPermission) {
+                locationPermissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+            } else {
+                resolveCurrentLocation(context)?.let { userCoordinates = it }
+            }
+        }
+    }
+
+    LaunchedEffect(suggestedLocation?.name) {
+        if (location.isBlank() && suggestedLocation != null) {
+            location = suggestedLocation.name
+        }
     }
 
     Box(
@@ -142,8 +237,17 @@ fun GivingPage() {
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFB4532A))
                 ) {
-                    Box(Modifier.padding(18.dp)) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             Text(
                                 "One Day",
                                 color = Color.White,
@@ -162,8 +266,8 @@ fun GivingPage() {
                         }
                         Button(
                             onClick = {},
-                            modifier = Modifier.align(Alignment.TopEnd),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Black, contentColor = Color.White),
+                            modifier = Modifier.wrapContentWidth(Alignment.End),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                             shape = RoundedCornerShape(999.dp)
                         ) {
                             Text("Calculate")
@@ -245,12 +349,12 @@ fun GivingPage() {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "",
+                                "G",
                                 color = onSurfaceColor,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
-                            Text("Apple Pay", color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
+                            Text("Google Pay", color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 )
@@ -295,7 +399,49 @@ fun GivingPage() {
                     ) {
                         Button(
                             onClick = {
-                                if ((amount.toFloatOrNull() ?: 0f) >= 1f) showPaymentConfirmation = true
+                                viewModel.clearMessages()
+                                val parsedAmount = amount.toFloatOrNull() ?: 0f
+                                if (parsedAmount < 1f) {
+                                    viewModel.reportError("Enter at least $1.00 to schedule a gift.")
+                                    return@Button
+                                }
+                                if (!isGooglePayReady) {
+                                    viewModel.reportError("Google Pay is not available on this device.")
+                                    return@Button
+                                }
+                                if (activity == null) {
+                                    viewModel.reportError("Unable to launch Google Pay from this context.")
+                                    return@Button
+                                }
+                                val paymentDataRequestJson = GooglePayJsonFactory.paymentDataRequest(
+                                    price = String.format(Locale.US, "%.2f", parsedAmount)
+                                )
+                                val paymentDataRequest = PaymentDataRequest.fromJson(paymentDataRequestJson.toString())
+                                paymentsClient.loadPaymentData(paymentDataRequest)
+                                    .addOnSuccessListener { paymentData ->
+                                        val token = extractPaymentToken(paymentData)
+                                        if (token.isNullOrBlank()) {
+                                            viewModel.reportError("Google Pay token was empty. Please try again.")
+                                        } else {
+                                            viewModel.scheduleGift(
+                                                amount = amount,
+                                                location = location,
+                                                frequency = if (recurringEnabled) frequency else null,
+                                                processDateLabel = processDateLabel,
+                                                paymentToken = token
+                                            )
+                                        }
+                                    }
+                                    .addOnFailureListener { throwable ->
+                                        if (throwable is ResolvableApiException) {
+                                            val request = IntentSenderRequest.Builder(throwable.resolution).build()
+                                            googlePayLauncher.launch(request)
+                                        } else {
+                                            viewModel.reportError(
+                                                "Google Pay failed: ${throwable.message ?: "unknown"}"
+                                            )
+                                        }
+                                    }
                             },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
@@ -304,7 +450,15 @@ fun GivingPage() {
                             ),
                             shape = RoundedCornerShape(999.dp)
                         ) {
-                            Text(scheduleButtonText(amount), fontWeight = FontWeight.SemiBold)
+                            if (submitUiState.isSubmitting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = visibleKeyboardGiveButtonContent
+                                )
+                            } else {
+                                Text(scheduleButtonText(amount), fontWeight = FontWeight.SemiBold)
+                            }
                         }
                         IconButton(
                             onClick = { showKeyboard = false },
@@ -342,6 +496,20 @@ fun GivingPage() {
                         }
                     }
                 }
+                submitUiState.errorMessage?.let { message ->
+                    Text(
+                        text = message,
+                        color = Color(0xFFDC2626),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
+                submitUiState.successMessage?.let { message ->
+                    Text(
+                        text = message,
+                        color = Color(0xFF15803D),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
             }
         }
     }
@@ -366,7 +534,24 @@ fun GivingPage() {
     }
     if (showLocationPicker) {
         SelectSheet(title = "Location", onDismiss = { showLocationPicker = false }) {
-            items(locations) { loc ->
+            if (suggestedLocation != null) {
+                item { LocationSectionHeader("SUGGESTED") }
+                item {
+                    LocationItem(suggestedLocation, selected = suggestedLocation.name == location) {
+                        location = suggestedLocation.name
+                        showLocationPicker = false
+                    }
+                }
+            }
+            item { LocationSectionHeader("GLOBAL") }
+            item {
+                LocationItem(onlineLocation, selected = onlineLocation.name == location) {
+                    location = onlineLocation.name
+                    showLocationPicker = false
+                }
+            }
+            item { LocationSectionHeader("ALL LOCATIONS (SORTED BY DISTANCE)") }
+            items(physicalLocations) { loc ->
                 LocationItem(loc, selected = loc.name == location) {
                     location = loc.name
                     showLocationPicker = false
@@ -383,38 +568,8 @@ fun GivingPage() {
     }
     if (showPaymentMethod) {
         SelectSheet(title = "Payment Method", onDismiss = { showPaymentMethod = false }) {
-            item { SimpleSelectItem("Apple Pay", selected = true, onClick = {}) }
+            item { SimpleSelectItem("Google Pay", selected = true, onClick = {}) }
             item { SimpleSelectItem("Add New Payment Method", selected = false, onClick = {}) }
-        }
-    }
-    if (showPaymentConfirmation) {
-        Dialog(onDismissRequest = { showPaymentConfirmation = false }) {
-            Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Pay", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                        IconButton(onClick = { showPaymentConfirmation = false }) {
-                            Icon(Icons.Default.Close, contentDescription = null)
-                        }
-                    }
-                    Text("Pay Life.Church $location", color = Color.Gray)
-                    Text("$${amount}", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-                    Box(
-                        modifier = Modifier
-                            .size(62.dp)
-                            .background(Color(0xFF3B82F6), CircleShape)
-                            .align(Alignment.CenterHorizontally),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
-                    }
-                    Text("Confirm with side button", modifier = Modifier.align(Alignment.CenterHorizontally))
-                }
-            }
         }
     }
 }
@@ -594,36 +749,47 @@ private fun FundItem(fund: GivingFund, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun LocationItem(location: GivingLocation, selected: Boolean, onClick: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(location.group, color = Color.Gray, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-        Card(
+    val isDarkTheme = isSystemInDarkTheme()
+    val containerColor = if (isDarkTheme) Color(0xFF3A3A3A) else Color.White
+    val titleColor = if (isDarkTheme) Color.White else Color.Black
+    val subtitleColor = if (isDarkTheme) Color(0xFF9CA3AF) else Color.Gray
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor)
+    ) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(location.name, fontWeight = FontWeight.SemiBold)
-                    Text(location.addressLine1, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
-                    if (location.addressLine2.isNotBlank()) {
-                        Text(location.addressLine2, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
-                    }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(location.name, color = titleColor, fontWeight = FontWeight.SemiBold)
+                Text(location.addressLine1, color = subtitleColor, style = MaterialTheme.typography.bodySmall)
+                if (location.addressLine2.isNotBlank()) {
+                    Text(location.addressLine2, color = subtitleColor, style = MaterialTheme.typography.bodySmall)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(location.distance, color = Color.Gray)
-                    if (selected) Icon(Icons.Default.Check, contentDescription = null)
-                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(location.distanceLabel, color = subtitleColor)
+                if (selected) Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF40D9EA))
             }
         }
     }
+}
+
+@Composable
+private fun LocationSectionHeader(title: String) {
+    Text(
+        text = title,
+        color = Color.Gray,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold
+    )
 }
 
 @Composable
@@ -642,7 +808,6 @@ private fun DatePickerDialog(
         val dialogContainerColor = if (isDarkTheme) Color(0xFF2A2A2A) else MaterialTheme.colorScheme.surface
         val onDialogColor = MaterialTheme.colorScheme.onSurface
         val mutedTextColor = if (isDarkTheme) Color(0xFFD1D5DB) else MaterialTheme.colorScheme.onSurfaceVariant
-        val dayButtonColor = if (isDarkTheme) Color(0xFFE5E7EB) else MaterialTheme.colorScheme.surface
         Card(
             shape = RoundedCornerShape(26.dp),
             colors = CardDefaults.cardColors(containerColor = dialogContainerColor)
@@ -709,7 +874,7 @@ private fun DatePickerDialog(
                 Button(
                     onClick = { onDone(chosenDate) },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = dayButtonColor, contentColor = onDialogColor),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black, contentColor = Color.White),
                     shape = RoundedCornerShape(999.dp)
                 ) {
                     Text("Done")
@@ -789,6 +954,16 @@ private fun isSameDay(a: Date, b: Date): Boolean {
         calA.get(Calendar.DAY_OF_YEAR) == calB.get(Calendar.DAY_OF_YEAR)
 }
 
+private fun extractPaymentToken(paymentData: PaymentData?): String? {
+    val paymentJson = paymentData?.toJson() ?: return null
+    return runCatching {
+        JSONObject(paymentJson)
+            .getJSONObject("paymentMethodData")
+            .getJSONObject("tokenizationData")
+            .getString("token")
+    }.getOrNull()
+}
+
 private fun givingFunds(): List<GivingFund> = listOf(
     GivingFund(
         "Tithe",
@@ -812,6 +987,128 @@ private data class GivingLocation(
     val name: String,
     val addressLine1: String,
     val addressLine2: String,
-    val group: String,
-    val distance: String
+    val distanceLabel: String,
+    val distanceMiles: Double
+)
+
+private data class CampusLocation(
+    val name: String,
+    val addressLine1: String,
+    val addressLine2: String,
+    val latitude: Double,
+    val longitude: Double
+)
+
+private data class LatLng(
+    val latitude: Double,
+    val longitude: Double
+)
+
+private fun CampusLocation.toUiLocation(distanceLabel: String): GivingLocation {
+    return GivingLocation(
+        name = name,
+        addressLine1 = addressLine1,
+        addressLine2 = addressLine2,
+        distanceLabel = distanceLabel,
+        distanceMiles = distanceLabel.removeSuffix("mi").toDoubleOrNull() ?: Double.MAX_VALUE
+    )
+}
+
+private fun hasAnyLocationPermission(context: Context): Boolean {
+    val hasFine = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+    val hasCoarse = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+    return hasFine || hasCoarse
+}
+
+private fun resolveCurrentLocation(context: Context): LatLng? {
+    if (!hasAnyLocationPermission(context)) return null
+    val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
+    val candidates = listOf(
+        LocationManager.GPS_PROVIDER,
+        LocationManager.NETWORK_PROVIDER,
+        LocationManager.PASSIVE_PROVIDER
+    )
+    val best = candidates
+        .mapNotNull { provider ->
+            runCatching { manager.getLastKnownLocation(provider) }.getOrNull()
+        }
+        .maxByOrNull { it.time }
+    return best?.let { LatLng(it.latitude, it.longitude) }
+}
+
+private fun distanceMiles(userLat: Double, userLon: Double, targetLat: Double, targetLon: Double): Double {
+    val results = FloatArray(1)
+    Location.distanceBetween(userLat, userLon, targetLat, targetLon, results)
+    return results[0] / 1609.344
+}
+
+private fun formatMiles(miles: Double): String {
+    val roundedTenth = ((miles * 10.0).roundToInt()) / 10.0
+    return String.format(Locale.US, "%.1fmi", roundedTenth)
+}
+
+private fun givingOnlineLocation(): GivingLocation {
+    return GivingLocation(
+        name = "Life.Church Online",
+        addressLine1 = "Life.Church Online meets anywhere you are with more than 130 services each week.",
+        addressLine2 = "",
+        distanceLabel = "369.9mi",
+        distanceMiles = Double.MAX_VALUE
+    )
+}
+
+private val UT_AUSTIN_SPEEDWAY_COORDS = LatLng(30.2862, -97.7394)
+
+private fun givingLocationsCatalog(): List<CampusLocation> = listOf(
+    CampusLocation("Austin", "13609 N Interstate Hwy 35", "Austin, TX 78753", 30.4437, -97.6683),
+    CampusLocation("Fort Worth", "7800 N Beach St", "Fort Worth, TX", 32.8722, -97.2898),
+    CampusLocation("Mansfield", "1501 Hwy 287 N", "Mansfield, TX", 32.5843, -97.1403),
+    CampusLocation("Keller", "201 Mount Gilead Rd", "Keller, TX", 32.9390, -97.2260),
+    CampusLocation("McKinney", "2045 W University Dr", "McKinney, TX", 33.2205, -96.6402),
+    CampusLocation("Amarillo", "1501 S Coulter St", "Amarillo, TX", 35.1971, -101.9207),
+    CampusLocation("Norman", "2001 24th Ave NW", "Norman, OK", 35.2450, -97.4763),
+    CampusLocation("Moore", "2001 NW 12th St", "Moore, OK", 35.3526, -97.5041),
+    CampusLocation("Mustang", "460 E State Hwy 152", "Mustang, OK", 35.3910, -97.7217),
+    CampusLocation("South Oklahoma City", "2100 SW 119th St", "Oklahoma City, OK", 35.3461, -97.5567),
+    CampusLocation("Northwest Oklahoma City", "2001 NW 178th St", "Edmond, OK", 35.6494, -97.5483),
+    CampusLocation("Broadway & Britton (OKC)", "1001 W Britton Rd", "Oklahoma City, OK", 35.5662, -97.5331),
+    CampusLocation("Midwest City", "901 N Douglas Blvd", "Midwest City, OK", 35.4728, -97.3977),
+    CampusLocation("Yukon", "6300 NW Expressway", "Yukon, OK", 35.5513, -97.7524),
+    CampusLocation("Shawnee", "5113 N Harrison St", "Shawnee, OK", 35.3800, -96.9001),
+    CampusLocation("Edmond", "4600 E 2nd St", "Edmond, OK", 35.6540, -97.4160),
+    CampusLocation("Stillwater", "1917 N Country Club Rd", "Stillwater, OK", 36.1436, -97.0568),
+    CampusLocation("South Tulsa", "8200 S Lewis Ave", "Tulsa, OK", 36.0435, -95.9584),
+    CampusLocation("Midtown Tulsa", "2000 E 15th St", "Tulsa, OK", 36.1418, -95.9640),
+    CampusLocation("Broken Arrow", "2420 E Kenosha St", "Broken Arrow, OK", 36.0218, -95.7617),
+    CampusLocation("South Broken Arrow", "1400 W Washington St", "Broken Arrow, OK", 36.0528, -95.8127),
+    CampusLocation("Jenks", "100 W Main St", "Jenks, OK", 36.0229, -95.9683),
+    CampusLocation("Catoosa", "19303 E Admiral Pl", "Catoosa, OK", 36.1882, -95.7637),
+    CampusLocation("Owasso", "8513 N 129th E Ave", "Owasso, OK", 36.2788, -95.8293),
+    CampusLocation("Fort Smith", "8600 Rogers Ave", "Fort Smith, AR", 35.3618, -94.3416),
+    CampusLocation("Rogers", "2220 S Promenade Blvd", "Rogers, AR", 36.3081, -94.1722),
+    CampusLocation("Derby", "300 N Rock Rd", "Derby, KS", 37.5483, -97.2449),
+    CampusLocation("East Wichita", "3210 N Maize Rd", "Wichita, KS", 37.7427, -97.4622),
+    CampusLocation("West Wichita", "2233 N Ridge Rd", "Wichita, KS", 37.7250, -97.4284),
+    CampusLocation("Overland Park", "14300 Metcalf Ave", "Overland Park, KS", 38.8730, -94.6694),
+    CampusLocation("Lenexa", "9130 Renner Blvd", "Lenexa, KS", 38.9628, -94.7757),
+    CampusLocation("Kansas City (East / Lee's Summit)", "400 SW Longview Blvd", "Lee's Summit, MO", 38.9018, -94.3800),
+    CampusLocation("Northland (Kansas City)", "721 NE 76th St", "Kansas City, MO", 39.2307, -94.5698),
+    CampusLocation("Springfield", "2220 W Republic Rd", "Springfield, MO", 37.1611, -93.3304),
+    CampusLocation("Rio Rancho / Albuquerque", "7511 Eagle Ranch Rd NW", "Albuquerque, NM", 35.1924, -106.7220),
+    CampusLocation("Colorado Springs", "4000 Lee Vance Dr", "Colorado Springs, CO", 38.8907, -104.7475),
+    CampusLocation("South Denver (Littleton)", "7745 Titan Rd", "Littleton, CO", 39.5748, -105.0084),
+    CampusLocation("North Denver (Aurora)", "15051 E Alameda Pkwy", "Aurora, CO", 39.7106, -104.8115),
+    CampusLocation("Papillion", "10600 S 96th St", "Papillion, NE", 41.1463, -96.0725),
+    CampusLocation("Omaha", "18015 Pacific St", "Omaha, NE", 41.2509, -96.1987),
+    CampusLocation("Hendersonville", "100 Indian Lake Blvd", "Hendersonville, TN", 36.3021, -86.6202),
+    CampusLocation("Des Moines (Pleasant Hill)", "6200 E University Ave", "Pleasant Hill, IA", 41.6005, -93.5003),
+    CampusLocation("Wellington", "150 S State Rd 7", "Wellington, FL", 26.6573, -80.2055),
+    CampusLocation("West Palm Beach", "2625 Okeechobee Blvd", "West Palm Beach, FL", 26.7060, -80.0950),
+    CampusLocation("Albany (Latham)", "595 New Loudon Rd", "Latham, NY", 42.7478, -73.7590)
 )
