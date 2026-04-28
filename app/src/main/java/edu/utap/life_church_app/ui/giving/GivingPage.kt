@@ -82,6 +82,13 @@ fun GivingPage() {
     val onBackgroundColor = MaterialTheme.colorScheme.onBackground
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val secondaryTextColor = if (isDarkTheme) Color(0xFF9CA3AF) else MaterialTheme.colorScheme.onSurfaceVariant
+    val hasValidAmount = (amount.toFloatOrNull() ?: 0f) >= 1f
+    val hiddenKeyboardButtonContainer = if (hasValidAmount) Color.White else Color.Black
+    val hiddenKeyboardButtonContent = if (hasValidAmount) Color.Black else Color.White
+    val visibleKeyboardGiveButtonContainer = Color(0xFFA3A3A3)
+    val visibleKeyboardGiveButtonContent = Color.Black
+    val lightGrayControlContainer = Color(0xFFE5E7EB)
+    val lightGrayControlContent = Color.Black
 
     val funds = remember { givingFunds() }
     val frequencies = remember { listOf("Weekly", "Every Two Weeks", "Twice Monthly (1st & 15th)", "Monthly") }
@@ -229,18 +236,22 @@ fun GivingPage() {
             }
             item {
                 SelectRow(
-                    title = "Payment Method",
-                    value = "Apple Pay",
+                    title = "",
+                    value = "",
                     onClick = { showPaymentMethod = true },
                     leading = {
-                        Text(
-                            "Pay",
-                            color = onSurfaceColor,
-                            modifier = Modifier
-                                .background(surfaceColor, RoundedCornerShape(6.dp))
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "",
+                                color = onSurfaceColor,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text("Apple Pay", color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 )
             }
@@ -261,7 +272,10 @@ fun GivingPage() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = surfaceColor, contentColor = onSurfaceColor),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = hiddenKeyboardButtonContainer,
+                        contentColor = hiddenKeyboardButtonContent
+                    ),
                     shape = RoundedCornerShape(999.dp)
                 ) {
                     Text(scheduleButtonText(amount), fontWeight = FontWeight.SemiBold)
@@ -284,7 +298,10 @@ fun GivingPage() {
                                 if ((amount.toFloatOrNull() ?: 0f) >= 1f) showPaymentConfirmation = true
                             },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = surfaceColor, contentColor = onSurfaceColor),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = visibleKeyboardGiveButtonContainer,
+                                contentColor = visibleKeyboardGiveButtonContent
+                            ),
                             shape = RoundedCornerShape(999.dp)
                         ) {
                             Text(scheduleButtonText(amount), fontWeight = FontWeight.SemiBold)
@@ -293,18 +310,36 @@ fun GivingPage() {
                             onClick = { showKeyboard = false },
                             modifier = Modifier
                                 .size(52.dp)
-                                .background(elevatedSurfaceColor, CircleShape)
+                                .background(lightGrayControlContainer, CircleShape)
                         ) {
-                            Icon(Icons.Default.Keyboard, contentDescription = null, tint = onSurfaceColor)
+                            Icon(Icons.Default.Keyboard, contentDescription = null, tint = lightGrayControlContent)
                         }
                     }
-                    KeypadRow(listOf("1", "2", "3")) { amount = appendDigit(amount, it) }
-                    KeypadRow(listOf("4", "5", "6")) { amount = appendDigit(amount, it) }
-                    KeypadRow(listOf("7", "8", "9")) { amount = appendDigit(amount, it) }
+                    KeypadRow(
+                        keys = listOf("1", "2", "3"),
+                        containerColor = lightGrayControlContainer,
+                        contentColor = lightGrayControlContent
+                    ) { amount = appendDigit(amount, it) }
+                    KeypadRow(
+                        keys = listOf("4", "5", "6"),
+                        containerColor = lightGrayControlContainer,
+                        contentColor = lightGrayControlContent
+                    ) { amount = appendDigit(amount, it) }
+                    KeypadRow(
+                        keys = listOf("7", "8", "9"),
+                        containerColor = lightGrayControlContainer,
+                        contentColor = lightGrayControlContent
+                    ) { amount = appendDigit(amount, it) }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        KeypadButton(".", Modifier.weight(1f)) { amount = appendDecimal(amount) }
-                        KeypadButton("0", Modifier.weight(1f)) { amount = appendDigit(amount, "0") }
-                        KeypadButton("⌫", Modifier.weight(1f)) { amount = deleteDigit(amount) }
+                        KeypadButton(".", Modifier.weight(1f), lightGrayControlContainer, lightGrayControlContent) {
+                            amount = appendDecimal(amount)
+                        }
+                        KeypadButton("0", Modifier.weight(1f), lightGrayControlContainer, lightGrayControlContent) {
+                            amount = appendDigit(amount, "0")
+                        }
+                        KeypadButton("⌫", Modifier.weight(1f), lightGrayControlContainer, lightGrayControlContent) {
+                            amount = deleteDigit(amount)
+                        }
                     }
                 }
             }
@@ -413,10 +448,14 @@ private fun SelectRow(
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (leading != null) leading()
-                Text(title, color = titleColor, style = MaterialTheme.typography.bodySmall)
+                if (title.isNotBlank()) {
+                    Text(title, color = titleColor, style = MaterialTheme.typography.bodySmall)
+                }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(value, color = valueColor, fontWeight = FontWeight.SemiBold)
+                if (value.isNotBlank()) {
+                    Text(value, color = valueColor, fontWeight = FontWeight.SemiBold)
+                }
                 Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = iconColor)
             }
         }
@@ -424,19 +463,27 @@ private fun SelectRow(
 }
 
 @Composable
-private fun KeypadRow(keys: List<String>, onKey: (String) -> Unit) {
+private fun KeypadRow(
+    keys: List<String>,
+    containerColor: Color,
+    contentColor: Color,
+    onKey: (String) -> Unit
+) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         keys.forEach { key ->
-            KeypadButton(key, Modifier.weight(1f)) { onKey(key) }
+            KeypadButton(key, Modifier.weight(1f), containerColor, contentColor) { onKey(key) }
         }
     }
 }
 
 @Composable
-private fun KeypadButton(label: String, modifier: Modifier, onClick: () -> Unit) {
-    val isDarkTheme = isSystemInDarkTheme()
-    val containerColor = if (isDarkTheme) Color(0xFF3A3A3A) else MaterialTheme.colorScheme.surface
-    val contentColor = MaterialTheme.colorScheme.onSurface
+private fun KeypadButton(
+    label: String,
+    modifier: Modifier,
+    containerColor: Color,
+    contentColor: Color,
+    onClick: () -> Unit
+) {
     Button(
         onClick = onClick,
         modifier = modifier.height(62.dp),

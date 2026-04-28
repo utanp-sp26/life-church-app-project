@@ -128,7 +128,14 @@ fun AppNavigation() {
                 }
                 composable(AppRoute.MediaLeadershipPodcast.pattern) {
                     ThemedNonHomePage {
-                        LeadershipPodcastPage(onOpenAudio = { id -> navController.navigate(AppRoute.AudioPlayer.create(id.toString())) })
+                        LeadershipPodcastPage(
+                            onOpenAudio = { id ->
+                                navController.navigate(AppRoute.AudioPlayer.create(id.toString()))
+                            },
+                            onBack = { navController.popBackStack() },
+                            onOpenSettings = { navController.navigate(AppRoute.MediaSettings.pattern) },
+                            onShare = {},
+                        )
                     }
                 }
                 composable(AppRoute.MediaLifeGroups.pattern) {

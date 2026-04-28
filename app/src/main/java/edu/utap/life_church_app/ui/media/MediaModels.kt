@@ -107,19 +107,40 @@ object MediaData {
     )
 
     val leadershipPodcastDescription =
-        "Leadership is in your DNA. In this podcast, you get timely insights from Pastor Craig " +
-            "and his guests to make the most of your leadership potential."
+        "Leadership. It's in Your DNA. It's the way God created you. You don't have to know it " +
+            "all to be a great leader! In this podcast, you'll get timely insights from Pastor " +
+            "Craig and his guests to make the most of your leadership potential."
 
     val podcastEpisodes = listOf(
-        PodcastEpisode(192, "192. Cognitive Neu...", "https://images.unsplash.com/photo-1688039763740-9036cb5d566e?w=800"),
-        PodcastEpisode(191, "191. Right Person,...", "https://images.unsplash.com/photo-1694881227503-ddc502d4b4cc?w=800"),
-        PodcastEpisode(190, "190. NBA Psycholog...", "https://images.unsplash.com/photo-1630467267476-c67b34ffc837?w=800"),
-        PodcastEpisode(189, "189. How to Stay M...", "https://images.unsplash.com/photo-1651514645899-de1cadd1ec31?w=800"),
-        PodcastEpisode(188, "188. The Leadershi...", "https://images.unsplash.com/photo-1747214300321-4b4993dc4ac4?w=800"),
-        PodcastEpisode(187, "187. Building a Cu...", "https://images.unsplash.com/photo-1762968269894-1d7e1ce8894e?w=800"),
-        PodcastEpisode(186, "186. Making Tough...", "https://images.unsplash.com/photo-1758518732175-5d608ba3abdf?w=800"),
-        PodcastEpisode(185, "185. Leading with...", "https://images.unsplash.com/photo-1637979910686-ef82f715361b?w=800"),
-        PodcastEpisode(184, "184. Overcoming Fe...", "https://images.unsplash.com/photo-1772396719557-5743c644877f?w=800"),
-        PodcastEpisode(183, "183. The Power of...", "https://images.unsplash.com/photo-1731102413744-390432dd5c3e?w=800")
+        PodcastEpisode(
+            192,
+            "Cognitive Neuroscientist: The Formula to Rewire Your Mind | Dr. Caroline Leaf",
+            "https://images.unsplash.com/photo-1688039763740-9036cb5d566e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwb2RjYXN0JTIwZXBpc29kZSUyMG1pY3JvcGhvbmUlMjBzdHVkaW98ZW58MXx8fHwxNzc1NzUxODY0fDA&ixlib=rb-4.1.0&q=80&w=1080"
+        ),
+        PodcastEpisode(
+            191,
+            "Right Person, Wrong Seat",
+            "https://images.unsplash.com/photo-1772396719557-5743c644877f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjcmFpZyUyMGdyb2VzY2hlbCUyMHBvZGNhc3QlMjBsZWFkZXJzaGlwfGVufDF8fHx8MTc3NTc1MTg2NHww&ixlib=rb-4.1.0&q=80&w=1080"
+        ),
+        PodcastEpisode(
+            190,
+            "NBA Psychologist: The Secret to Thriving Under Pressure | Dr. Wayne Chappelle",
+            "https://images.unsplash.com/photo-1694881227503-ddc502d4b4cc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwYXN0b3IlMjBzcGVha2luZyUyMHBvZGNhc3QlMjBtaWNyb3Bob25lfGVufDF8fHx8MTc3NTc1MTMyOXww&ixlib=rb-4.1.0&q=80&w=1080"
+        ),
+        PodcastEpisode(
+            189,
+            "How to Stay Motivated When Things Get Hard",
+            "https://images.unsplash.com/photo-1630467267476-c67b34ffc837?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b3JzaGlwJTIwY29uY2VydCUyMGNyb3dkJTIwaGFuZHN8ZW58MXx8fHwxNzc1NzUxMzI5fDA&ixlib=rb-4.1.0&q=80&w=1080"
+        ),
+        PodcastEpisode(
+            188,
+            "The Leadership Habit You Need to Develop",
+            "https://images.unsplash.com/photo-1651514645899-de1cadd1ec31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzbWFsbCUyMGdyb3VwJTIwYmlibGUlMjBzdHVkeSUyMGNvbW11bml0eXxlbnwxfHx8fDE3NzU3NTEzMzB8MA&ixlib=rb-4.1.0&q=80&w=1080"
+        ),
+        PodcastEpisode(
+            187,
+            "Building a Culture of Excellence",
+            "https://images.unsplash.com/photo-1747214300321-4b4993dc4ac4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXJzb24lMjB0ZXN0aW1vbnklMjBwb3J0cmFpdCUyMHN0b3J5fGVufDF8fHx8MTc3NTc1MTMzMHww&ixlib=rb-4.1.0&q=80&w=1080"
+        )
     )
 }
