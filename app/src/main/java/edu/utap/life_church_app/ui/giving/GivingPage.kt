@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -74,6 +75,13 @@ fun GivingPage() {
     var showPaymentConfirmation by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf(Calendar.getInstance().time) }
     var processDateLabel by remember { mutableStateOf("Today") }
+    val isDarkTheme = isSystemInDarkTheme()
+    val backgroundColor = if (isDarkTheme) Color(0xFF1A1A1A) else MaterialTheme.colorScheme.background
+    val surfaceColor = if (isDarkTheme) Color(0xFF2A2A2A) else MaterialTheme.colorScheme.surface
+    val elevatedSurfaceColor = if (isDarkTheme) Color(0xFF3A3A3A) else MaterialTheme.colorScheme.surface
+    val onBackgroundColor = MaterialTheme.colorScheme.onBackground
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val secondaryTextColor = if (isDarkTheme) Color(0xFF9CA3AF) else MaterialTheme.colorScheme.onSurfaceVariant
 
     val funds = remember { givingFunds() }
     val frequencies = remember { listOf("Weekly", "Every Two Weeks", "Twice Monthly (1st & 15th)", "Monthly") }
@@ -93,7 +101,7 @@ fun GivingPage() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1A1A1A))
+            .background(backgroundColor)
     ) {
         LazyColumn(
             modifier = Modifier
@@ -114,11 +122,11 @@ fun GivingPage() {
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(location, color = Color.White, fontWeight = FontWeight.SemiBold)
-                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = Color.White)
+                        Text(location, color = onBackgroundColor, fontWeight = FontWeight.SemiBold)
+                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = onBackgroundColor)
                     }
                     IconButton(onClick = {}) {
-                        Icon(Icons.Default.Dashboard, contentDescription = null, tint = Color.White)
+                        Icon(Icons.Default.Dashboard, contentDescription = null, tint = onBackgroundColor)
                     }
                 }
             }
@@ -159,7 +167,7 @@ fun GivingPage() {
             item {
                 Card(
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2A2A)),
+                    colors = CardDefaults.cardColors(containerColor = surfaceColor),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showKeyboard = true }
@@ -174,13 +182,13 @@ fun GivingPage() {
                         Row(verticalAlignment = Alignment.Top) {
                             Text(
                                 "$",
-                                color = if (showKeyboard) Color(0xFF40D9EA) else Color.White,
+                                color = if (showKeyboard) Color(0xFF40D9EA) else onSurfaceColor,
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 amount,
-                                color = if (showKeyboard) Color(0xFF40D9EA) else Color(0xFF9CA3AF),
+                                color = if (showKeyboard) Color(0xFF40D9EA) else secondaryTextColor,
                                 style = MaterialTheme.typography.displayMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -190,8 +198,8 @@ fun GivingPage() {
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(category, color = Color.White, fontWeight = FontWeight.SemiBold)
-                            Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = Color.White)
+                            Text(category, color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
+                            Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = onSurfaceColor)
                         }
                     }
                 }
@@ -205,7 +213,7 @@ fun GivingPage() {
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Color(0xFF40D9EA))
-                            Text("Make Gift Recurring", color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text("Make Gift Recurring", color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
                         }
                         Switch(checked = recurringEnabled, onCheckedChange = { recurringEnabled = it })
                     }
@@ -227,9 +235,9 @@ fun GivingPage() {
                     leading = {
                         Text(
                             "Pay",
-                            color = Color.Black,
+                            color = onSurfaceColor,
                             modifier = Modifier
-                                .background(Color.White, RoundedCornerShape(6.dp))
+                                .background(surfaceColor, RoundedCornerShape(6.dp))
                                 .padding(horizontal = 10.dp, vertical = 4.dp),
                             fontWeight = FontWeight.Bold
                         )
@@ -243,7 +251,7 @@ fun GivingPage() {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Color(0xFF1A1A1A))
+                .background(backgroundColor)
                 .navigationBarsPadding()
                 .imePadding()
         ) {
@@ -253,7 +261,7 @@ fun GivingPage() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                    colors = ButtonDefaults.buttonColors(containerColor = surfaceColor, contentColor = onSurfaceColor),
                     shape = RoundedCornerShape(999.dp)
                 ) {
                     Text(scheduleButtonText(amount), fontWeight = FontWeight.SemiBold)
@@ -262,7 +270,7 @@ fun GivingPage() {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF2A2A2A))
+                        .background(surfaceColor)
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -276,7 +284,7 @@ fun GivingPage() {
                                 if ((amount.toFloatOrNull() ?: 0f) >= 1f) showPaymentConfirmation = true
                             },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                            colors = ButtonDefaults.buttonColors(containerColor = surfaceColor, contentColor = onSurfaceColor),
                             shape = RoundedCornerShape(999.dp)
                         ) {
                             Text(scheduleButtonText(amount), fontWeight = FontWeight.SemiBold)
@@ -285,9 +293,9 @@ fun GivingPage() {
                             onClick = { showKeyboard = false },
                             modifier = Modifier
                                 .size(52.dp)
-                                .background(Color(0xFF3A3A3A), CircleShape)
+                                .background(elevatedSurfaceColor, CircleShape)
                         ) {
-                            Icon(Icons.Default.Keyboard, contentDescription = null, tint = Color.White)
+                            Icon(Icons.Default.Keyboard, contentDescription = null, tint = onSurfaceColor)
                         }
                     }
                     KeypadRow(listOf("1", "2", "3")) { amount = appendDigit(amount, it) }
@@ -378,7 +386,8 @@ fun GivingPage() {
 
 @Composable
 private fun SettingCard(content: @Composable () -> Unit) {
-    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2A2A))) {
+    val cardColor = if (isSystemInDarkTheme()) Color(0xFF2A2A2A) else MaterialTheme.colorScheme.surface
+    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = cardColor)) {
         Column(Modifier.padding(14.dp)) { content() }
     }
 }
@@ -390,6 +399,10 @@ private fun SelectRow(
     onClick: () -> Unit,
     leading: @Composable (() -> Unit)? = null
 ) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val titleColor = if (isDarkTheme) Color(0xFF9CA3AF) else MaterialTheme.colorScheme.onSurfaceVariant
+    val valueColor = MaterialTheme.colorScheme.onSurface
+    val iconColor = if (isDarkTheme) Color(0xFF9CA3AF) else MaterialTheme.colorScheme.onSurfaceVariant
     SettingCard {
         Row(
             modifier = Modifier
@@ -400,11 +413,11 @@ private fun SelectRow(
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (leading != null) leading()
-                Text(title, color = Color(0xFF9CA3AF), style = MaterialTheme.typography.bodySmall)
+                Text(title, color = titleColor, style = MaterialTheme.typography.bodySmall)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(value, color = Color.White, fontWeight = FontWeight.SemiBold)
-                Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = Color(0xFF9CA3AF))
+                Text(value, color = valueColor, fontWeight = FontWeight.SemiBold)
+                Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = iconColor)
             }
         }
     }
@@ -421,11 +434,14 @@ private fun KeypadRow(keys: List<String>, onKey: (String) -> Unit) {
 
 @Composable
 private fun KeypadButton(label: String, modifier: Modifier, onClick: () -> Unit) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val containerColor = if (isDarkTheme) Color(0xFF3A3A3A) else MaterialTheme.colorScheme.surface
+    val contentColor = MaterialTheme.colorScheme.onSurface
     Button(
         onClick = onClick,
         modifier = modifier.height(62.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A3A3A), contentColor = Color.White)
+        colors = ButtonDefaults.buttonColors(containerColor = containerColor, contentColor = contentColor)
     ) {
         Text(label, style = MaterialTheme.typography.titleLarge)
     }
@@ -439,9 +455,12 @@ private fun SelectSheet(
     dark: Boolean = false,
     content: LazyListScope.() -> Unit
 ) {
+    val useDarkSheet = dark && isSystemInDarkTheme()
+    val containerColor = if (useDarkSheet) Color(0xFF2A2A2A) else MaterialTheme.colorScheme.surface
+    val onContainerColor = if (useDarkSheet) Color.White else MaterialTheme.colorScheme.onSurface
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = if (dark) Color(0xFF2A2A2A) else Color(0xFFF5F5F5)
+        containerColor = containerColor
     ) {
         Row(
             modifier = Modifier
@@ -454,10 +473,10 @@ private fun SelectSheet(
                 Icon(
                     Icons.Default.KeyboardArrowDown,
                     contentDescription = null,
-                    tint = if (dark) Color.White else Color.Black
+                    tint = onContainerColor
                 )
             }
-            Text(title, color = if (dark) Color.White else Color.Black, fontWeight = FontWeight.SemiBold)
+            Text(title, color = onContainerColor, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.width(48.dp))
         }
         LazyColumn(
@@ -496,12 +515,16 @@ private fun SimpleSelectItem(label: String, selected: Boolean, onClick: () -> Un
 
 @Composable
 private fun FundItem(fund: GivingFund, selected: Boolean, onClick: () -> Unit) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val containerColor = if (isDarkTheme) Color(0xFF3A3A3A) else MaterialTheme.colorScheme.surface
+    val titleColor = MaterialTheme.colorScheme.onSurface
+    val descriptionColor = if (isDarkTheme) Color(0xFF9CA3AF) else MaterialTheme.colorScheme.onSurfaceVariant
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF3A3A3A))
+        colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Row(
             modifier = Modifier
@@ -512,8 +535,8 @@ private fun FundItem(fund: GivingFund, selected: Boolean, onClick: () -> Unit) {
         ) {
             Text(fund.icon, style = MaterialTheme.typography.headlineSmall)
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(fund.name, color = Color.White, fontWeight = FontWeight.SemiBold)
-                Text(fund.description, color = Color(0xFF9CA3AF), style = MaterialTheme.typography.bodySmall)
+                Text(fund.name, color = titleColor, fontWeight = FontWeight.SemiBold)
+                Text(fund.description, color = descriptionColor, style = MaterialTheme.typography.bodySmall)
             }
             if (selected) {
                 Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF40D9EA))
@@ -568,9 +591,14 @@ private fun DatePickerDialog(
     val days = buildMonthGrid(shownMonth)
 
     Dialog(onDismissRequest = onDismiss) {
+        val isDarkTheme = isSystemInDarkTheme()
+        val dialogContainerColor = if (isDarkTheme) Color(0xFF2A2A2A) else MaterialTheme.colorScheme.surface
+        val onDialogColor = MaterialTheme.colorScheme.onSurface
+        val mutedTextColor = if (isDarkTheme) Color(0xFFD1D5DB) else MaterialTheme.colorScheme.onSurfaceVariant
+        val dayButtonColor = if (isDarkTheme) Color(0xFFE5E7EB) else MaterialTheme.colorScheme.surface
         Card(
             shape = RoundedCornerShape(26.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2A2A))
+            colors = CardDefaults.cardColors(containerColor = dialogContainerColor)
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
@@ -579,9 +607,9 @@ private fun DatePickerDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = Color.White)
+                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = onDialogColor)
                     }
-                    Text("Process Date", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text("Process Date", color = onDialogColor, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.width(48.dp))
                 }
                 Row(
@@ -619,7 +647,7 @@ private fun DatePickerDialog(
                                 ) {
                                     Text(
                                         dayOfMonth(day).toString(),
-                                        color = if (selected) Color.White else Color(0xFFD1D5DB)
+                                        color = if (selected) Color.White else mutedTextColor
                                     )
                                 }
                             }
@@ -628,13 +656,13 @@ private fun DatePickerDialog(
                 }
                 Text(
                     "Process Date: ${formatDisplayDate(chosenDate)}",
-                    color = Color.White,
+                    color = onDialogColor,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
                 Button(
                     onClick = { onDone(chosenDate) },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE5E7EB), contentColor = Color.Black),
+                    colors = ButtonDefaults.buttonColors(containerColor = dayButtonColor, contentColor = onDialogColor),
                     shape = RoundedCornerShape(999.dp)
                 ) {
                     Text("Done")
