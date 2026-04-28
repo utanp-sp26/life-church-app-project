@@ -41,6 +41,7 @@ android {
             val debugStripeKey = localSecretOrNull("STRIPE_PUBLISHABLE_KEY_DEBUG") ?: ""
             buildConfigField("String", "GIVING_BACKEND_URL", buildConfigString(debugBackendUrl))
             buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", buildConfigString(debugStripeKey))
+            buildConfigField("boolean", "ALLOW_MOCK_GOOGLE_PAY", "true")
         }
         release {
             val releaseBackendUrl = localSecretOrNull("GIVING_BACKEND_URL_RELEASE")
@@ -49,6 +50,7 @@ android {
                 ?: throw GradleException("Missing STRIPE_PUBLISHABLE_KEY_RELEASE in local.properties")
             buildConfigField("String", "GIVING_BACKEND_URL", buildConfigString(releaseBackendUrl))
             buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", buildConfigString(releaseStripeKey))
+            buildConfigField("boolean", "ALLOW_MOCK_GOOGLE_PAY", "false")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

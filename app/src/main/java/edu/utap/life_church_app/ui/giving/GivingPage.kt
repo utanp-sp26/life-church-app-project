@@ -74,6 +74,7 @@ import com.google.android.gms.wallet.PaymentData
 import com.google.android.gms.wallet.PaymentDataRequest
 import com.google.android.gms.wallet.Wallet
 import com.google.android.gms.wallet.WalletConstants
+import edu.utap.life_church_app.BuildConfig
 import edu.utap.life_church_app.ui.giving.payment.GooglePayJsonFactory
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -411,7 +412,18 @@ fun GivingPage(viewModel: GivingViewModel = viewModel()) {
                                     return@Button
                                 }
                                 if (!isGooglePayReady) {
-                                    viewModel.reportError("Google Pay is not available on this device.")
+                                    if (BuildConfig.ALLOW_MOCK_GOOGLE_PAY) {
+                                        // Debug fallback for non-Play emulators.
+                                        viewModel.scheduleGift(
+                                            amount = amount,
+                                            location = location,
+                                            frequency = if (recurringEnabled) frequency else null,
+                                            processDateLabel = processDateLabel,
+                                            paymentToken = "mock_token_debug"
+                                        )
+                                    } else {
+                                        viewModel.reportError("Google Pay is not available on this device.")
+                                    }
                                     return@Button
                                 }
                                 if (activity == null) {
