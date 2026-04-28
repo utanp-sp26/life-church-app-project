@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
@@ -50,7 +49,7 @@ fun LeadershipPodcastPage(
         state = listState,
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        stickyHeader {
+        stickyHeader { _ ->
             Surface(shadowElevation = 2.dp) {
                 Row(
                     modifier = Modifier

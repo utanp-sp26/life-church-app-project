@@ -130,7 +130,12 @@ fun GivingPage(viewModel: GivingViewModel = viewModel()) {
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val paymentToken = extractPaymentToken(PaymentData.getFromIntent(result.data))
+            val data = result.data
+            val paymentToken = if (data != null) {
+                extractPaymentToken(PaymentData.getFromIntent(data))
+            } else {
+                null
+            }
             if (paymentToken.isNullOrBlank()) {
                 viewModel.reportError("Google Pay token was empty. Please try again.")
             } else {
@@ -148,7 +153,7 @@ fun GivingPage(viewModel: GivingViewModel = viewModel()) {
     }
 
     LaunchedEffect(paymentsClient) {
-        val request = IsReadyToPayRequest.fromJsonString(GooglePayJsonFactory.isReadyToPayRequest().toString())
+        val request = IsReadyToPayRequest.fromJson(GooglePayJsonFactory.isReadyToPayRequest().toString())
         paymentsClient.isReadyToPay(request).addOnCompleteListener { task ->
             isGooglePayReady = task.isSuccessful && task.result == true
         }

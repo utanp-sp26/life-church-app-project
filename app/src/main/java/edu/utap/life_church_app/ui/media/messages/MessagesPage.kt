@@ -1,6 +1,5 @@
 package edu.utap.life_church_app.ui.media.messages
 
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.clickable
@@ -37,8 +36,8 @@ import edu.utap.life_church_app.ui.media.MediaData
 @Composable
 fun MessagesPage(
     onOpenVideo: (Int) -> Unit,
+    onBack: () -> Unit,
 ) {
-    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val gridState = rememberLazyGridState()
     Column(
         modifier = Modifier
@@ -62,7 +61,7 @@ fun MessagesPage(
                     modifier = Modifier.align(Alignment.Center),
                 )
                 IconButton(
-                    onClick = { backDispatcher?.onBackPressed() },
+                    onClick = onBack,
                     modifier = Modifier.align(Alignment.CenterStart),
                 ) {
                     Icon(
