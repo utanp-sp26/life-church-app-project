@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,9 @@ import edu.utap.life_church_app.ui.shell.FullScreenMenuDrawer
 import edu.utap.life_church_app.ui.shell.LifeBottomBar
 import edu.utap.life_church_app.navigation.BottomTab
 import edu.utap.life_church_app.ui.serving.ServingPage
+import edu.utap.life_church_app.ui.theme.Life_church_appTheme
+import java.util.Calendar
+import kotlinx.coroutines.delay
 
 /**
  * **Single owner** of the root [NavHost] and app shell (see [AppRoute] KDoc). Add new
@@ -82,69 +86,95 @@ fun AppNavigation() {
                     )
                 }
                 composable(AppRoute.Media.pattern) {
-                    MediaPage(
-                        onOpenMessages = { navController.navigate(AppRoute.MediaMessages.pattern) },
-                        onOpenWorship = { navController.navigate(AppRoute.MediaWorship.pattern) },
-                        onOpenStories = { navController.navigate(AppRoute.MediaStories.pattern) },
-                        onOpenLeadershipPodcast = { navController.navigate(AppRoute.MediaLeadershipPodcast.pattern) },
-                        onOpenLifeGroups = { navController.navigate(AppRoute.MediaLifeGroups.pattern) },
-                        onOpenSettings = { navController.navigate(AppRoute.MediaSettings.pattern) },
-                        onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) },
-                        onOpenAudio = { id -> navController.navigate(AppRoute.AudioPlayer.create(id.toString())) },
-                        onOpenWorshipAlbum = { id -> navController.navigate(AppRoute.WorshipAlbum.create(id.toString())) }
-                    )
+                    ThemedNonHomePage {
+                        MediaPage(
+                            onOpenMessages = { navController.navigate(AppRoute.MediaMessages.pattern) },
+                            onOpenWorship = { navController.navigate(AppRoute.MediaWorship.pattern) },
+                            onOpenStories = { navController.navigate(AppRoute.MediaStories.pattern) },
+                            onOpenLeadershipPodcast = { navController.navigate(AppRoute.MediaLeadershipPodcast.pattern) },
+                            onOpenLifeGroups = { navController.navigate(AppRoute.MediaLifeGroups.pattern) },
+                            onOpenSettings = { navController.navigate(AppRoute.MediaSettings.pattern) },
+                            onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) },
+                            onOpenAudio = { id -> navController.navigate(AppRoute.AudioPlayer.create(id.toString())) },
+                            onOpenWorshipAlbum = { id -> navController.navigate(AppRoute.WorshipAlbum.create(id.toString())) }
+                        )
+                    }
                 }
                 composable(AppRoute.MediaMessages.pattern) {
-                    MessagesPage(onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) })
+                    ThemedNonHomePage {
+                        MessagesPage(onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) })
+                    }
                 }
                 composable(AppRoute.MediaWorship.pattern) {
-                    WorshipPage(onOpenAlbum = { id -> navController.navigate(AppRoute.WorshipAlbum.create(id.toString())) })
+                    ThemedNonHomePage {
+                        WorshipPage(onOpenAlbum = { id -> navController.navigate(AppRoute.WorshipAlbum.create(id.toString())) })
+                    }
                 }
                 composable(
                     route = AppRoute.WorshipAlbum.pattern,
                     arguments = listOf(navArgument("id") { type = NavType.StringType }),
                 ) { backStack ->
                     val id = backStack.arguments?.getString("id").orEmpty()
-                    WorshipAlbumPage(id = id, onPlaySong = { songId ->
-                        navController.navigate(AppRoute.AudioPlayer.create(songId.toString()))
-                    })
+                    ThemedNonHomePage {
+                        WorshipAlbumPage(id = id, onPlaySong = { songId ->
+                            navController.navigate(AppRoute.AudioPlayer.create(songId.toString()))
+                        })
+                    }
                 }
                 composable(AppRoute.MediaStories.pattern) {
-                    StoriesPage(onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) })
+                    ThemedNonHomePage {
+                        StoriesPage(onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) })
+                    }
                 }
                 composable(AppRoute.MediaLeadershipPodcast.pattern) {
-                    LeadershipPodcastPage(onOpenAudio = { id -> navController.navigate(AppRoute.AudioPlayer.create(id.toString())) })
+                    ThemedNonHomePage {
+                        LeadershipPodcastPage(onOpenAudio = { id -> navController.navigate(AppRoute.AudioPlayer.create(id.toString())) })
+                    }
                 }
-                composable(AppRoute.MediaLifeGroups.pattern) { LifeGroupsViewAllPage() }
-                composable(AppRoute.MediaSettings.pattern) { MediaSettingsPage() }
+                composable(AppRoute.MediaLifeGroups.pattern) {
+                    ThemedNonHomePage { LifeGroupsViewAllPage() }
+                }
+                composable(AppRoute.MediaSettings.pattern) {
+                    ThemedNonHomePage { MediaSettingsPage() }
+                }
                 composable(
                     route = AppRoute.AudioPlayer.pattern,
                     arguments = listOf(navArgument("id") { type = NavType.StringType }),
                 ) { backStack ->
                     val id = backStack.arguments?.getString("id").orEmpty()
-                    AudioPlayerPage(id = id)
+                    ThemedNonHomePage { AudioPlayerPage(id = id) }
                 }
                 composable(
                     route = AppRoute.VideoPlayer.pattern,
                     arguments = listOf(navArgument("id") { type = NavType.StringType }),
                 ) { backStack ->
                     val id = backStack.arguments?.getString("id").orEmpty()
-                    VideoPlayerPage(id = id, onOpenVideo = { nextId ->
-                        navController.navigate(AppRoute.VideoPlayer.create(nextId.toString()))
-                    })
+                    ThemedNonHomePage {
+                        VideoPlayerPage(id = id, onOpenVideo = { nextId ->
+                            navController.navigate(AppRoute.VideoPlayer.create(nextId.toString()))
+                        })
+                    }
                 }
                 composable(AppRoute.LifeGroups.pattern) {
-                    LifeGroupsPage(onFindLifeGroup = { navController.navigate(AppRoute.FindLifeGroup.pattern) })
+                    ThemedNonHomePage {
+                        LifeGroupsPage(onFindLifeGroup = { navController.navigate(AppRoute.FindLifeGroup.pattern) })
+                    }
                 }
-                composable(AppRoute.FindLifeGroup.pattern) { FindLifeGroupPage() }
-                composable(AppRoute.Serving.pattern) { ServingPage() }
-                composable(AppRoute.Giving.pattern) { GivingPage() }
+                composable(AppRoute.FindLifeGroup.pattern) {
+                    ThemedNonHomePage { FindLifeGroupPage() }
+                }
+                composable(AppRoute.Serving.pattern) {
+                    ThemedNonHomePage { ServingPage() }
+                }
+                composable(AppRoute.Giving.pattern) {
+                    ThemedNonHomePage { GivingPage() }
+                }
                 composable(
                     route = AppRoute.StoryDetail.pattern,
                     arguments = listOf(navArgument("id") { type = NavType.StringType }),
                 ) { backStack ->
                     val id = backStack.arguments?.getString("id").orEmpty()
-                    StoriesDetailPage(id = id)
+                    ThemedNonHomePage { StoriesDetailPage(id = id) }
                 }
             }
         }
@@ -166,4 +196,28 @@ fun AppNavigation() {
             )
         }
     }
+}
+
+@Composable
+private fun ThemedNonHomePage(content: @Composable () -> Unit) {
+    var darkTheme by remember { mutableStateOf(isNightTime()) }
+
+    // Matches web ThemeContext behavior: recompute every minute.
+    LaunchedEffect(Unit) {
+        while (true) {
+            darkTheme = isNightTime()
+            delay(60_000)
+        }
+    }
+
+    Life_church_appTheme(
+        darkTheme = darkTheme,
+        dynamicColor = false,
+        content = content
+    )
+}
+
+private fun isNightTime(): Boolean {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return hour < 6 || hour >= 18
 }
