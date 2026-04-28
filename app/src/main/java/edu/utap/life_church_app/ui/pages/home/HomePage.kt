@@ -1,5 +1,6 @@
 package edu.utap.life_church_app.ui.pages.home
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -108,19 +109,28 @@ fun HomePage(
                             isSubmittingPrayer = true
 
                             coroutineScope.launch {
-                                runCatching {
-                                    prayerRequestRepository.submitPrayerRequest(
+                                try {
+                                    val result = prayerRequestRepository.submitPrayerRequest(
                                         name = profileName,
                                         churchLocation = churchLocation,
                                         prayerRequest = prayerText.trim(),
                                     )
-                                }.onSuccess {
-                                    showPrayerModal = false
-                                    showConfirmationModal = true
-                                }.onFailure {
+                                    when (result) {
+                                        is PrayerSubmitResult.Success -> {
+                                            showPrayerModal = false
+                                            showConfirmationModal = true
+                                        }
+
+                                        is PrayerSubmitResult.Failure -> {
+                                            prayerSubmitError = result.message
+                                        }
+                                    }
+                                } catch (t: Throwable) {
+                                    Log.e("HomePage", "Prayer submission failed unexpectedly", t)
                                     prayerSubmitError = "We couldn't submit your request. Please try again."
+                                } finally {
+                                    isSubmittingPrayer = false
                                 }
-                                isSubmittingPrayer = false
                             }
                         }
                     }

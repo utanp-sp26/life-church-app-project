@@ -4,5 +4,6 @@ data class PrayerRequest(
     val name: String,
     val churchLocation: String,
     val prayerRequest: String,
+    val source: String = "android",
     val createdAt: Any? = null,
 )
