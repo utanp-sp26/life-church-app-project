@@ -18,12 +18,25 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import edu.utap.life_church_app.ui.common.PlaceholderScreen
+import edu.utap.life_church_app.ui.giving.GivingPage
+import edu.utap.life_church_app.ui.lifegroups.FindLifeGroupPage
+import edu.utap.life_church_app.ui.lifegroups.LifeGroupsPage
+import edu.utap.life_church_app.ui.lifegroups.LifeGroupsViewAllPage
 import edu.utap.life_church_app.ui.media.MediaPage
+import edu.utap.life_church_app.ui.media.messages.MessagesPage
+import edu.utap.life_church_app.ui.media.player.AudioPlayerPage
+import edu.utap.life_church_app.ui.media.player.VideoPlayerPage
+import edu.utap.life_church_app.ui.media.podcast.LeadershipPodcastPage
+import edu.utap.life_church_app.ui.media.settings.MediaSettingsPage
+import edu.utap.life_church_app.ui.media.stories.StoriesDetailPage
+import edu.utap.life_church_app.ui.media.stories.StoriesPage
+import edu.utap.life_church_app.ui.media.worship.WorshipAlbumPage
+import edu.utap.life_church_app.ui.media.worship.WorshipPage
 import edu.utap.life_church_app.ui.pages.home.HomePage
 import edu.utap.life_church_app.ui.shell.FullScreenMenuDrawer
 import edu.utap.life_church_app.ui.shell.LifeBottomBar
 import edu.utap.life_church_app.navigation.BottomTab
+import edu.utap.life_church_app.ui.serving.ServingPage
 
 /**
  * **Single owner** of the root [NavHost] and app shell (see [AppRoute] KDoc). Add new
@@ -68,44 +81,70 @@ fun AppNavigation() {
                         onConsumeOpenPrayerFromMenu = { openPrayerFromMenu = false },
                     )
                 }
-                composable(AppRoute.Media.pattern) { MediaPage() }
-                composable(AppRoute.MediaMessages.pattern) { PlaceholderScreen("Messages") }
-                composable(AppRoute.MediaWorship.pattern) { PlaceholderScreen("Worship") }
+                composable(AppRoute.Media.pattern) {
+                    MediaPage(
+                        onOpenMessages = { navController.navigate(AppRoute.MediaMessages.pattern) },
+                        onOpenWorship = { navController.navigate(AppRoute.MediaWorship.pattern) },
+                        onOpenStories = { navController.navigate(AppRoute.MediaStories.pattern) },
+                        onOpenLeadershipPodcast = { navController.navigate(AppRoute.MediaLeadershipPodcast.pattern) },
+                        onOpenLifeGroups = { navController.navigate(AppRoute.MediaLifeGroups.pattern) },
+                        onOpenSettings = { navController.navigate(AppRoute.MediaSettings.pattern) },
+                        onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) },
+                        onOpenAudio = { id -> navController.navigate(AppRoute.AudioPlayer.create(id.toString())) },
+                        onOpenWorshipAlbum = { id -> navController.navigate(AppRoute.WorshipAlbum.create(id.toString())) }
+                    )
+                }
+                composable(AppRoute.MediaMessages.pattern) {
+                    MessagesPage(onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) })
+                }
+                composable(AppRoute.MediaWorship.pattern) {
+                    WorshipPage(onOpenAlbum = { id -> navController.navigate(AppRoute.WorshipAlbum.create(id.toString())) })
+                }
                 composable(
                     route = AppRoute.WorshipAlbum.pattern,
                     arguments = listOf(navArgument("id") { type = NavType.StringType }),
                 ) { backStack ->
                     val id = backStack.arguments?.getString("id").orEmpty()
-                    PlaceholderScreen("Worship album: $id")
+                    WorshipAlbumPage(id = id, onPlaySong = { songId ->
+                        navController.navigate(AppRoute.AudioPlayer.create(songId.toString()))
+                    })
                 }
-                composable(AppRoute.MediaStories.pattern) { PlaceholderScreen("Stories") }
-                composable(AppRoute.MediaLeadershipPodcast.pattern) { PlaceholderScreen("Leadership podcast") }
-                composable(AppRoute.MediaLifeGroups.pattern) { PlaceholderScreen("Media — Life groups") }
-                composable(AppRoute.MediaSettings.pattern) { PlaceholderScreen("Media settings") }
+                composable(AppRoute.MediaStories.pattern) {
+                    StoriesPage(onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) })
+                }
+                composable(AppRoute.MediaLeadershipPodcast.pattern) {
+                    LeadershipPodcastPage(onOpenAudio = { id -> navController.navigate(AppRoute.AudioPlayer.create(id.toString())) })
+                }
+                composable(AppRoute.MediaLifeGroups.pattern) { LifeGroupsViewAllPage() }
+                composable(AppRoute.MediaSettings.pattern) { MediaSettingsPage() }
                 composable(
                     route = AppRoute.AudioPlayer.pattern,
                     arguments = listOf(navArgument("id") { type = NavType.StringType }),
                 ) { backStack ->
                     val id = backStack.arguments?.getString("id").orEmpty()
-                    PlaceholderScreen("Audio: $id")
+                    AudioPlayerPage(id = id)
                 }
                 composable(
                     route = AppRoute.VideoPlayer.pattern,
                     arguments = listOf(navArgument("id") { type = NavType.StringType }),
                 ) { backStack ->
                     val id = backStack.arguments?.getString("id").orEmpty()
-                    PlaceholderScreen("Video: $id")
+                    VideoPlayerPage(id = id, onOpenVideo = { nextId ->
+                        navController.navigate(AppRoute.VideoPlayer.create(nextId.toString()))
+                    })
                 }
-                composable(AppRoute.LifeGroups.pattern) { PlaceholderScreen("Life groups") }
-                composable(AppRoute.FindLifeGroup.pattern) { PlaceholderScreen("Find a life group") }
-                composable(AppRoute.Serving.pattern) { PlaceholderScreen("Serving") }
-                composable(AppRoute.Giving.pattern) { PlaceholderScreen("Giving") }
+                composable(AppRoute.LifeGroups.pattern) {
+                    LifeGroupsPage(onFindLifeGroup = { navController.navigate(AppRoute.FindLifeGroup.pattern) })
+                }
+                composable(AppRoute.FindLifeGroup.pattern) { FindLifeGroupPage() }
+                composable(AppRoute.Serving.pattern) { ServingPage() }
+                composable(AppRoute.Giving.pattern) { GivingPage() }
                 composable(
                     route = AppRoute.StoryDetail.pattern,
                     arguments = listOf(navArgument("id") { type = NavType.StringType }),
                 ) { backStack ->
                     val id = backStack.arguments?.getString("id").orEmpty()
-                    PlaceholderScreen("Story: $id")
+                    StoriesDetailPage(id = id)
                 }
             }
         }
