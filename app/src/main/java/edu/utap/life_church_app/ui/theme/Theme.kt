@@ -1,6 +1,5 @@
 package edu.utap.life_church_app.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -11,33 +10,67 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+private val LightColorScheme = lightColorScheme(
+    primary = LifePrimary,
+    onPrimary = LifePrimaryForeground,
+    primaryContainer = LifeInputBackground,
+    onPrimaryContainer = LifePrimary,
+    secondary = LifeSecondary,
+    onSecondary = LifeSecondaryForeground,
+    secondaryContainer = LifeMuted,
+    onSecondaryContainer = LifePrimary,
+    tertiary = LifeAccent,
+    onTertiary = LifeAccentForeground,
+    tertiaryContainer = LifeMuted,
+    onTertiaryContainer = LifeMutedForeground,
+    error = LifeDestructive,
+    onError = LifeDestructiveForeground,
+    errorContainer = LifeDestructive.copy(alpha = 0.12f),
+    onErrorContainer = LifeDestructive,
+    background = LifeBackground,
+    onBackground = LifeForeground,
+    surface = LifeCard,
+    onSurface = LifeCardForeground,
+    surfaceVariant = LifeMuted,
+    onSurfaceVariant = LifeMutedForeground,
+    outline = LifeRing,
+    outlineVariant = LifeBorder,
+    surfaceTint = LifePrimary
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val DarkColorScheme = darkColorScheme(
+    primary = LifeDarkPrimary,
+    onPrimary = LifeDarkPrimaryForeground,
+    primaryContainer = LifeDarkSecondary,
+    onPrimaryContainer = LifeDarkForeground,
+    secondary = LifeDarkSecondary,
+    onSecondary = LifeDarkForeground,
+    secondaryContainer = LifeDarkMuted,
+    onSecondaryContainer = LifeDarkMutedForeground,
+    tertiary = LifeDarkAccent,
+    onTertiary = LifeDarkForeground,
+    tertiaryContainer = LifeDarkMuted,
+    onTertiaryContainer = LifeDarkMutedForeground,
+    error = LifeDarkDestructive,
+    onError = LifeDarkForeground,
+    errorContainer = LifeDarkDestructive.copy(alpha = 0.25f),
+    onErrorContainer = LifeDarkForeground,
+    background = LifeDarkBackground,
+    onBackground = LifeDarkForeground,
+    surface = LifeDarkCard,
+    onSurface = LifeDarkForeground,
+    surfaceVariant = LifeDarkMuted,
+    onSurfaceVariant = LifeDarkMutedForeground,
+    outline = LifeDarkBorder,
+    outlineVariant = LifeDarkBorder.copy(alpha = 0.5f),
+    surfaceTint = LifeDarkPrimary
 )
 
 @Composable
 fun Life_church_appTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    /** Off by default so the fixed Figma / `theme.css` palette is not overridden by Android 12+ dynamic color. */
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -45,7 +78,6 @@ fun Life_church_appTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
@@ -53,6 +85,7 @@ fun Life_church_appTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = LifeShapes,
         content = content
     )
 }
