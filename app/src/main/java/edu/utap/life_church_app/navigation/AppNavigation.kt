@@ -102,7 +102,10 @@ fun AppNavigation() {
                 }
                 composable(AppRoute.MediaMessages.pattern) {
                     ThemedNonHomePage {
-                        MessagesPage(onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) })
+                        MessagesPage(
+                            onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) },
+                            onBack = { navController.popBackStack() },
+                        )
                     }
                 }
                 composable(AppRoute.MediaWorship.pattern) {
@@ -118,12 +121,17 @@ fun AppNavigation() {
                     ThemedNonHomePage {
                         WorshipAlbumPage(id = id, onPlaySong = { songId ->
                             navController.navigate(AppRoute.AudioPlayer.create(songId.toString()))
-                        })
+                        }, onBack = { navController.popBackStack() })
                     }
                 }
                 composable(AppRoute.MediaStories.pattern) {
                     ThemedNonHomePage {
-                        StoriesPage(onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) })
+                        StoriesPage(
+                            onOpenVideo = { id -> navController.navigate(AppRoute.VideoPlayer.create(id.toString())) },
+                            onBack = { navController.popBackStack() },
+                            onOpenSettings = { navController.navigate(AppRoute.MediaSettings.pattern) },
+                            onShare = {},
+                        )
                     }
                 }
                 composable(AppRoute.MediaLeadershipPodcast.pattern) {
