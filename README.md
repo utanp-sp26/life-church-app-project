@@ -17,6 +17,14 @@ The app is currently in active development. Contributions for improvements and b
 
 ---
 
+## Screenshots
+
+| Prayer Page | Giving Screen | Campus Selection |
+|----------|-------------|-----------------|
+| ![Home](images/prayer.png) | ![Giving](images/gpay.png) | ![Campuses](images/campus_selector.png) |
+
+---
+
 ## Highlights
 - Jetpack Compose Native UI  
 - Dynamic Giving Experience (with Google Pay integration)  
@@ -25,16 +33,8 @@ The app is currently in active development. Contributions for improvements and b
 - Material 3 Design  
 - Interactive Calendar for scheduling gifts  
 - Real-time Campus Distance Calculation  
-- Global & Local Missions Support  
-
----
-
-## Screenshots
-
-| Prayer Page | Giving Screen | Campus Selection |
-|----------|-------------|-----------------|
-| ![Home](images/prayer.png) | ![Giving](images/gpay.png) | ![Campuses](images/campus_selector.png) |
-
+- Global & Local Missions Support
+  
 ---
 
 ## Features
