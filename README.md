@@ -31,9 +31,9 @@ The app is currently in active development. Contributions for improvements and b
 
 ## Screenshots
 
-| Home Page | Giving Screen | Campus Selection |
+| Prayer Page | Giving Screen | Campus Selection |
 |----------|-------------|-----------------|
-| ![Home](images/home.png) | ![Giving](images/giving.png) | ![Campuses](images/campuses.png) |
+| ![Home](images/prayer.png) | ![Giving](images/gpay.png) | ![Campuses](images/campus_selector.png) |
 
 ---
 
