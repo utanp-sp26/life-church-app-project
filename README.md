@@ -108,6 +108,29 @@ To generate an APK or App Bundle:
 
 ---
 
+## FAQ
+
+#### How does the giving process work?The app uses the **Google Pay API** (via `play-services-wallet`) to ensure your financial data never touches our servers directly. When you initiate a gift, the app requests a secure payment token from Google. This token is then passed to our processing provider, ensuring a high-security, encrypted transaction that supports credit cards, debit cards, and saved Google account methods.
+
+#### How is my "Current Location" determined?
+The app uses a hybrid location strategy to find your closest campus:
+1. **GPS/Fine Location**: If granted, we use high-accuracy GPS.
+2. **Network/Coarse Location**: A fallback that uses cell towers and Wi-Fi for lower battery impact.
+3. **Smart Defaulting**: If you are outside our campus regions (e.g., testing from California), the app automatically defaults to **Life.Church Online** to ensure you can still participate in the community from anywhere.
+
+#### What happens if the payment sheet fails to open?
+Our giving engine includes robust error handling for system-level issues:
+- **Resource Management**: The app monitors for system resource exhaustion (like low device storage) which can sometimes cause Google Play Services to disconnect.
+- **Automatic Recovery**: In the event of a "DeadObjectException" (a common system communication error), the app attempts to re-initialize the connection automatically so you don't have to restart the app.
+
+#### Is this an official Life.Church product?
+This is an unofficial, high-performance client built to demonstrate modern Android development practices using Jetpack Compose. While it mirrors the functionality of the official site, it is a separate project focused on speed and native UI/UX.
+
+#### Can I schedule recurring gifts?
+Yes! The app features a custom-built **Interactive Calendar** in the Giving section. You can select specific dates, and the UI will dynamically update the "Process Date" to show exactly when your gift will be initiated.
+
+---
+
 ## Maintainers
 - Perry (Lead Developer)
 
